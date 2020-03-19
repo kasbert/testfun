@@ -1,9 +1,5 @@
 package org.testfun.jee;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -19,13 +15,14 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 public class TestResource {
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlRootElement
     private static class ObjectWithCollectionAsMember {
         private List<JaxRsTestObject> collection = new ArrayList<>();
+
+        public List<JaxRsTestObject> getCollection() {
+            return collection;
+        }
     }
 
     @GET

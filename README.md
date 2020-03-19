@@ -475,7 +475,6 @@ String response = jaxRsServer.
 
 Special thanks to...
 --------------------
-* [Project Lombok](http://projectlombok.org) for eliminating so much boiler plate code.
 * [Mockito](http://code.google.com/p/mockito/) for its super cool mocking framework.
 * [Junit](http://junit.org/) for setting the goal.
 * [RESTEasy](http://www.jboss.org/resteasy) for its sleek JAX-RS implementation and powerful testing infrastructure (based on Undertow).

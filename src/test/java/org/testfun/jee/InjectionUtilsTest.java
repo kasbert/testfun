@@ -1,9 +1,5 @@
 package org.testfun.jee;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -78,16 +74,107 @@ public class InjectionUtilsTest {
                 InjectionUtils.getFieldDescription(ClassA.class.getDeclaredField("str"), new ClassB()));
     }
 
-    @Data @AllArgsConstructor @NoArgsConstructor
     static class ClassA {
         private Serializable ser;
         private String str;
         private int in;
+        public ClassA() {
+        }
+        public ClassA(Serializable ser, String str, int in) {
+            super();
+            this.ser = ser;
+            this.str = str;
+            this.in = in;
+        }
+        public Serializable getSer() {
+            return ser;
+        }
+        public void setSer(Serializable ser) {
+            this.ser = ser;
+        }
+        public String getStr() {
+            return str;
+        }
+        public void setStr(String str) {
+            this.str = str;
+        }
+        public int getIn() {
+            return in;
+        }
+        public void setIn(int in) {
+            this.in = in;
+        }
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + in;
+            result = prime * result + ((str == null) ? 0 : str.hashCode());
+            return result;
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            ClassA other = (ClassA) obj;
+            if (in != other.in)
+                return false;
+            if (str == null) {
+                if (other.str != null)
+                    return false;
+            } else if (!str.equals(other.str))
+                return false;
+            return true;
+        }
     }
 
-    @Data @AllArgsConstructor @NoArgsConstructor @EqualsAndHashCode(callSuper = true)
     static class ClassB extends ClassA {
         private String child;
+
+        public ClassB() {
+        }
+
+        public ClassB(Serializable ser, String str, int in, String child) {
+            super(ser, str, in);
+            this.child = child;
+        }
+
+        public String getChild() {
+            return child;
+        }
+
+        public void setChild(String child) {
+            this.child = child;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = super.hashCode();
+            result = prime * result + ((child == null) ? 0 : child.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (!super.equals(obj))
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            ClassB other = (ClassB) obj;
+            if (child == null) {
+                if (other.child != null)
+                    return false;
+            } else if (!child.equals(other.child))
+                return false;
+            return true;
+        }
     }
 
 
