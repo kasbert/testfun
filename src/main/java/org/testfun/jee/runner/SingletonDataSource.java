@@ -2,6 +2,7 @@ package org.testfun.jee.runner;
 
 import org.apache.logging.log4j.LogManager;
 
+import javax.naming.InitialContext;
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -24,12 +25,19 @@ public class SingletonDataSource {
 
     private SingletonDataSource() {
         try {
-            Connection connection = DriverManager.getConnection(PersistenceXml.getInstnace().getConnectionUrl());
-            connection.setAutoCommit(false);
-            dataSource = (DataSource) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{DataSource.class}, new NotClosableDataSource(connection));
+            if (PersistenceXml.getInstnace().isJtaDataSource()) {
+                InitialContext ic = new InitialContext();
+                dataSource = (DataSource) ic.lookup(PersistenceXml.getInstnace().getJtaDataSource());
+                ic.close();
+            } else {
+                Connection connection = DriverManager.getConnection(PersistenceXml.getInstnace().getConnectionUrl());
+                connection.setAutoCommit(false);
+                dataSource = (DataSource) Proxy.newProxyInstance(getClass().getClassLoader(),
+                        new Class[] { DataSource.class }, new NotClosableDataSource(connection));
+            }
             LogManager.getLogger(SingletonDataSource.class).info("Data source initialized successfully");
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             LogManager.getLogger(SingletonDataSource.class).error("Data source initialization failed", e);
             throw new EjbWithMockitoRunnerException("Data source initialization failed", e);
         }

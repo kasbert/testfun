@@ -2,12 +2,12 @@ package org.testfun.jee.runner.inject;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
+
+import org.testfun.jee.runner.inject.MockInitialContextFactory.MockContext;
 
 public abstract class BaseInjector implements Injector {
 
-    private Map<Class, Object> instanceByClass = new HashMap<>();
+    private MockContext instanceByClass = MockInitialContextFactory.getMockContext();
 
     private MockRegistrar mockRegistrar;
 
