@@ -103,7 +103,7 @@ public class ExpectedConstraintViolation implements MethodRule {
         };
     }
 
-    class CausedBy extends ArgumentMatcher<Throwable> {
+    class CausedBy extends BaseMatcher<Throwable> {
 
         private final Class<? extends Throwable> throwableClass;
 
@@ -111,6 +111,7 @@ public class ExpectedConstraintViolation implements MethodRule {
             this.throwableClass = throwableClass;
         }
 
+        @Override
         public boolean matches(Object argument) {
             return ExceptionUtils.indexOfThrowable((Throwable) argument, throwableClass) >= 0;
         }
@@ -118,7 +119,6 @@ public class ExpectedConstraintViolation implements MethodRule {
         public void describeTo(Description description) {
             description.appendText("isCausedBy(" + throwableClass.getName() + ")");
         }
-
     }
 
 }

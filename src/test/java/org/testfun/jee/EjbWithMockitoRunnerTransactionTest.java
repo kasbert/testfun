@@ -99,7 +99,7 @@ public class EjbWithMockitoRunnerTransactionTest {
     private void firstAddRowNextVerify() {
         if (rowAdded) {
             // If a row was already added by a previous run, verify it was rolled back.
-            List rows = entityManager.createQuery("FROM Duplicates AS dups").getResultList();
+            List<Duplicates> rows = entityManager.createQuery("FROM Duplicates AS dups", Duplicates.class).getResultList();
             assertEquals(0, rows.size());
         }
 

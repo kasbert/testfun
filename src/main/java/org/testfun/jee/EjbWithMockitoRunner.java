@@ -9,7 +9,6 @@ import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.InitializationError;
 import org.mockito.MockitoAnnotations;
-import org.mockito.internal.runners.util.FrameworkUsageValidator;
 import org.testfun.jee.runner.DependencyInjector;
 import org.testfun.jee.runner.inject.MockInitialContextFactory;
 import org.testfun.jee.runner.inject.MockInitialContextFactory.MockContext;
@@ -62,7 +61,7 @@ public class EjbWithMockitoRunner extends Runner implements Filterable {
 
     public void run(RunNotifier notifier) {
         // add listener that validates framework usage at the end of each test
-        notifier.addListener(new FrameworkUsageValidator(notifier));
+        //notifier.addListener(new FrameworkUsageValidator(notifier));
 
         runner.run(notifier);
     }

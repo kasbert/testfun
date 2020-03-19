@@ -46,7 +46,10 @@ public class EjbInstanceFactory {
                         // If the class is annotated with @Stateless, register all the implemented interfaces
                         if (aClass.getAnnotation(Stateless.class) != null) {
                             for (Class<?> implementedInterface : aClass.getInterfaces()) {
-                                ejbClassByImplementedInterface.put(implementedInterface, aClass);
+                                // use the first bean
+                                if (!ejbClassByImplementedInterface.containsKey(implementedInterface)) {
+                                    ejbClassByImplementedInterface.put(implementedInterface, aClass);
+                                }
                             }
 
                             // Also, register the stateless as if it implements itself so the factory will work for SLSB that doesn't implement any interface.
@@ -57,6 +60,8 @@ public class EjbInstanceFactory {
                         // this will allow users to get the "implementing class" of the singleton
                         else if (aClass.getAnnotation(Singleton.class) != null) {
                             for (Class<?> implementedInterface : aClass.getInterfaces()) {
+                            // use the first bean
+                            if (!ejbClassByImplementedInterface.containsKey(implementedInterface))
                                 ejbClassByImplementedInterface.put(implementedInterface, aClass);
                             }
                             ejbClassByImplementedInterface.put(aClass, aClass);
