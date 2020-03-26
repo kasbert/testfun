@@ -1,7 +1,9 @@
 package org.testfun.jee.runner.inject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.naming.Binding;
 import javax.naming.Context;
+import javax.naming.InvalidNameException;
 import javax.naming.Name;
 import javax.naming.NameClassPair;
 import javax.naming.NameParser;
@@ -21,10 +24,11 @@ import org.apache.commons.lang.StringUtils;
 
 public class MockInitialContextFactory implements InitialContextFactory {
 
+    public static final String SEPARATOR = "/";
+
     protected static MockContext instance = new MockContext();
 
-    public MockInitialContextFactory() throws NamingException {
-    }
+    public MockInitialContextFactory() throws NamingException {}
 
     @Override
     public Context getInitialContext(Hashtable<?, ?> environment) throws NamingException {
@@ -39,8 +43,6 @@ public class MockInitialContextFactory implements InitialContextFactory {
 
         protected Map<String, Object> map = new ConcurrentHashMap<String, Object>();
 
-        public static final String SEPARATOR = "/";
-
         protected String toString(Name name) {
             return StringUtils.join(Collections.list(name.getAll()), SEPARATOR);
         }
@@ -52,6 +54,7 @@ public class MockInitialContextFactory implements InitialContextFactory {
 
         @Override
         public Object lookup(String name) throws NamingException {
+            name = normalizeName(name);
             if (!map.containsKey(name)) {
                 throw new NamingException("'" + name + "' is not bound");
             }
@@ -65,6 +68,7 @@ public class MockInitialContextFactory implements InitialContextFactory {
 
         @Override
         public void bind(String name, Object obj) throws NamingException {
+            name = normalizeName(name);
             if (map.containsKey(name)) {
                 throw new NamingException("'" + name + "' is already bound");
             }
@@ -72,22 +76,24 @@ public class MockInitialContextFactory implements InitialContextFactory {
         }
 
         @Override
-        public void rebind(Name name, Object obj) throws NamingException {
+        public void rebind(Name name, Object obj) {
             rebind(toString(name), obj);
         }
 
         @Override
-        public void rebind(String name, Object obj) throws NamingException {
+        public void rebind(String name, Object obj) {
+            name = normalizeName(name);
             map.put(name, obj);
         }
 
         @Override
-        public void unbind(Name name) throws NamingException {
+        public void unbind(Name name) {
             unbind(toString(name));
         }
 
         @Override
-        public void unbind(String name) throws NamingException {
+        public void unbind(String name) {
+            name = normalizeName(name);
             map.remove(name);
         }
 
@@ -110,6 +116,7 @@ public class MockInitialContextFactory implements InitialContextFactory {
 
         @Override
         public NamingEnumeration<NameClassPair> list(String name) throws NamingException {
+            name = normalizeName(name);
             List<NameClassPair> bindings = new ArrayList<NameClassPair>();
             name = name + SEPARATOR;
             for (Map.Entry<String, Object> me : map.entrySet()) {
@@ -126,7 +133,8 @@ public class MockInitialContextFactory implements InitialContextFactory {
         }
 
         @Override
-        public NamingEnumeration<Binding> listBindings(String name) throws NamingException {
+        public NamingEnumeration<Binding> listBindings(String name) {
+            name = normalizeName(name);
             List<Binding> bindings = new ArrayList<Binding>();
             name = name + SEPARATOR;
             for (Map.Entry<String, Object> me : map.entrySet()) {
@@ -169,17 +177,17 @@ public class MockInitialContextFactory implements InitialContextFactory {
 
         @Override
         public NameParser getNameParser(Name name) throws NamingException {
-            throw new Error("not implemented");
+            return getNameParser(toString(name));
         }
 
         @Override
         public NameParser getNameParser(String name) throws NamingException {
-            throw new Error("not implemented");
+            return new MockNameParser(name);
         }
 
         @Override
         public Name composeName(Name name, Name prefix) throws NamingException {
-            throw new Error("not implemented");
+            return new MockName(prefix).addAll(name);
         }
 
         @Override
@@ -203,21 +211,28 @@ public class MockInitialContextFactory implements InitialContextFactory {
         }
 
         @Override
-        public void close() throws NamingException {
-        }
+        public void close() throws NamingException {}
 
         @Override
         public String getNameInNamespace() throws NamingException {
             throw new Error("not implemented");
         }
 
-        //
+        // Other
         public void put(Class<?> cls, Object obj) {
             map.put("mock:" + cls.getName(), obj);
         }
 
         public Object get(Class<?> cls) {
             return map.get("mock:" + cls.getName());
+        }
+
+        public void put(String key, Object obj) {
+            map.put(key, obj);
+        }
+
+        public Object get(String key) {
+            return map.get(key);
         }
 
         public void clear() {
@@ -233,6 +248,149 @@ public class MockInitialContextFactory implements InitialContextFactory {
             return map.containsKey(key);
         }
 
+        private String normalizeName(String name) {
+            return name.replaceAll("^/", "");
+        }
+
+    }
+
+    private static class MockNameParser implements NameParser {
+
+        private Name root;
+
+        public MockNameParser(String name) {
+            this.root = new MockName(name);
+        }
+
+        @Override
+        public Name parse(String name) throws NamingException {
+            return ((Name) root.clone()).addAll(new MockName(name));
+        }
+    }
+
+    private static class MockName implements Name {
+
+        private static final long serialVersionUID = 1L;
+        private final List<String> elems = new ArrayList<String>();
+
+        public MockName(List<String> subList) {
+            elems.addAll(subList);
+        }
+
+        public MockName(Name prefix) {
+            addAll(prefix);
+        }
+
+        public MockName(String name) {
+            elems.addAll(Arrays.asList(name.split(SEPARATOR)));
+        }
+
+        @Override
+        public MockName clone() {
+            return new MockName(elems);
+        }
+
+        @Override
+        public int compareTo(Object obj) {
+            if (equals(obj)) {
+                return 0;
+            }
+            throw new Error("not implemented");
+        }
+
+        @Override
+        public int size() {
+            return elems.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return elems.isEmpty();
+        }
+
+        @Override
+        public Enumeration<String> getAll() {
+            return Collections.enumeration(elems);
+        }
+
+        @Override
+        public String get(int posn) {
+            return elems.get(posn);
+        }
+
+        @Override
+        public Name getPrefix(int posn) {
+            return new MockName(elems.subList(0, posn - 1));
+        }
+
+        @Override
+        public Name getSuffix(int posn) {
+            return new MockName(elems.subList(posn, elems.size()));
+        }
+
+        @Override
+        public boolean startsWith(Name n) {
+            return getPrefix(n.size()).equals(n);
+        }
+
+        @Override
+        public boolean endsWith(Name n) {
+            return getSuffix(elems.size() - n.size()).equals(n);
+        }
+
+        @Override
+        public Name addAll(Name suffix) {
+            elems.addAll(Collections.list(suffix.getAll()));
+            return this;
+        }
+
+        @Override
+        public Name addAll(int posn, Name n) {
+            elems.addAll(posn, Collections.list(n.getAll()));
+            return this;
+        }
+
+        @Override
+        public Name add(String comp) {
+            elems.add(comp);
+            return this;
+        }
+
+        @Override
+        public Name add(int posn, String comp) throws InvalidNameException {
+            elems.add(posn, comp);
+            return this;
+        }
+
+        @Override
+        public Object remove(int posn) throws InvalidNameException {
+            return elems.remove(posn);
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((elems == null) ? 0 : elems.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            MockName other = (MockName) obj;
+            if (elems == null) {
+                if (other.elems != null)
+                    return false;
+            } else if (!elems.equals(other.elems))
+                return false;
+            return true;
+        }
     }
 
 }

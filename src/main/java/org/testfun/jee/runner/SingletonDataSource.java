@@ -1,6 +1,8 @@
 package org.testfun.jee.runner;
 
 import org.apache.logging.log4j.LogManager;
+import org.testfun.jee.runner.inject.MockInitialContextFactory;
+import org.testfun.jee.runner.inject.MockInitialContextFactory.MockContext;
 
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
@@ -13,18 +15,25 @@ import java.sql.SQLException;
 
 public class SingletonDataSource {
 
-    public static DataSource getDataSource() {
-        return INSTANCE.dataSource;
+    public static final String JNDI_NAME = "java:/DataSource";
+
+    private SingletonDataSource () {};
+
+    private static Connection delegateConnection;
+
+    public static synchronized DataSource getDataSource() {
+        MockContext context = MockInitialContextFactory.getMockContext();
+        if (context.contains(JNDI_NAME)) {
+            return (DataSource) context.get(JNDI_NAME);
+        }
+        DataSource dataSource = createDataSource();
+        context.rebind(JNDI_NAME, dataSource);
+        return dataSource;
     }
 
-    private static final SingletonDataSource INSTANCE = new SingletonDataSource();
-
-    private DataSource dataSource;
-
-    private Connection delegateConnection;
-
-    private SingletonDataSource() {
+    private static DataSource createDataSource() {
         try {
+            DataSource dataSource;
             if (PersistenceXml.getInstnace().isJtaDataSource()) {
                 InitialContext ic = new InitialContext();
                 dataSource = (DataSource) ic.lookup(PersistenceXml.getInstnace().getJtaDataSource());
@@ -32,10 +41,11 @@ public class SingletonDataSource {
             } else {
                 Connection connection = DriverManager.getConnection(PersistenceXml.getInstnace().getConnectionUrl());
                 connection.setAutoCommit(false);
-                dataSource = (DataSource) Proxy.newProxyInstance(getClass().getClassLoader(),
+                dataSource = (DataSource) Proxy.newProxyInstance(SingletonDataSource.class.getClassLoader(),
                         new Class[] { DataSource.class }, new NotClosableDataSource(connection));
             }
             LogManager.getLogger(SingletonDataSource.class).info("Data source initialized successfully");
+            return dataSource;
 
         } catch (Exception e) {
             LogManager.getLogger(SingletonDataSource.class).error("Data source initialization failed", e);
@@ -49,7 +59,7 @@ public class SingletonDataSource {
      * Note that the connection returned from the data-source is never closed as it is up to the entity manager to
      * close its connection
      */
-    private class NotClosableDataSource implements InvocationHandler {
+    private static class NotClosableDataSource implements InvocationHandler {
 
         private NotClosableDataSource(Connection connection) throws SQLException {
             delegateConnection = connection;
@@ -79,7 +89,7 @@ public class SingletonDataSource {
     /**
      * A JDBC Connection proxy that ignores calls to close() - used when the connection is retrieved from the entity manager.
      */
-    private class NotClosableConnectionProxy implements InvocationHandler {
+    private static class NotClosableConnectionProxy implements InvocationHandler {
 
         private Connection delegate;
 

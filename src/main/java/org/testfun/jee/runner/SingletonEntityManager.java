@@ -1,6 +1,8 @@
 package org.testfun.jee.runner;
 
 import org.hibernate.cfg.AvailableSettings;
+import org.testfun.jee.runner.inject.MockInitialContextFactory;
+import org.testfun.jee.runner.inject.MockInitialContextFactory.MockContext;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -11,26 +13,33 @@ import java.util.Map;
 
 public class SingletonEntityManager {
 
+    public static final String JNDI_NAME = "java:/EntityManager";
+
     public static EntityManager getInstance() {
-        return INSTANCE.getEntityManager();
+        return getEntityManager();
     }
-
-    private static final SingletonEntityManager INSTANCE = new SingletonEntityManager();
-
-    private EntityManager entityManager;
 
     private SingletonEntityManager() {
     }
 
-    private synchronized EntityManager getEntityManager() {
-        if (entityManager == null) {
-            Map<String, DataSource> config = new HashMap<>();
-            config.put(AvailableSettings.DATASOURCE, SingletonDataSource.getDataSource());
-
-            EntityManagerFactory emf = Persistence.createEntityManagerFactory(PersistenceXml.getInstnace().getPersistenceUnitName(), config);
-            entityManager = emf.createEntityManager();
+    private synchronized static EntityManager getEntityManager() {
+        MockContext context = MockInitialContextFactory.getMockContext();
+        if (context.contains(JNDI_NAME)) {
+            return (EntityManager) context.get(JNDI_NAME);
         }
-
+        EntityManager entityManager = createEntityManager();
+        context.rebind(JNDI_NAME, entityManager);
         return entityManager;
     }
+    
+    private static EntityManager createEntityManager() {
+        Map<String, DataSource> config = new HashMap<>();
+        config.put(AvailableSettings.DATASOURCE, SingletonDataSource.getDataSource());
+
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory(PersistenceXml.getInstnace().getPersistenceUnitName(), config);
+        
+        EntityManager entityManager = emf.createEntityManager();
+        return entityManager;
+    }
+    
 }

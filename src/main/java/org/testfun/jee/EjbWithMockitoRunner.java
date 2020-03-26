@@ -11,15 +11,11 @@ import org.junit.runners.model.InitializationError;
 import org.mockito.MockitoAnnotations;
 import org.testfun.jee.runner.DependencyInjector;
 import org.testfun.jee.runner.inject.MockInitialContextFactory;
-import org.testfun.jee.runner.inject.MockInitialContextFactory.MockContext;
-import org.testfun.jee.runner.inject.MockTransactionManager;
 import org.testfun.jee.runner.inject.TransactionUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
 import javax.naming.Context;
-import javax.naming.NamingException;
-import javax.transaction.TransactionManager;
 
 /**
  * A JUnit runner that allows injection of JEE EJBs as well as Mockito mock objects directly into the test instance.
@@ -33,7 +29,6 @@ public class EjbWithMockitoRunner extends Runner implements Filterable {
 
     public EjbWithMockitoRunner(Class<?> klass) throws InvocationTargetException, InitializationError {
         initMockInitialContextFactory();
-        initMockTransactionManager();
         runner = new BlockJUnit4ClassRunner(klass) {
             @Override
             protected Object createTest() throws Exception {
@@ -80,24 +75,6 @@ public class EjbWithMockitoRunner extends Runner implements Filterable {
     }
 
     public static void initMockInitialContextFactory() {
-        try {
-            MockInitialContextFactory icf = new MockInitialContextFactory();
-            System.setProperty(Context.INITIAL_CONTEXT_FACTORY, icf.getClass().getName());
-          } catch (NamingException e) {
-            throw new Error("Error in initializing test runner", e);
-          }
+        System.setProperty(Context.INITIAL_CONTEXT_FACTORY, MockInitialContextFactory.class.getName());
     }
-
-    public static void initMockTransactionManager() {
-        try {
-            MockContext ctx = MockInitialContextFactory.getMockContext();
-            if (!ctx.contains(MockTransactionManager.JNDI_NAME)) {
-              TransactionManager transactionManager = new MockTransactionManager();
-              ctx.bind(MockTransactionManager.JNDI_NAME, transactionManager);
-            }
-          } catch (NamingException e) {
-            throw new Error("Error in initializing test runner", e);
-          }
-    }
-
 }
